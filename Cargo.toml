@@ -8,7 +8,8 @@ description = "Smart LOC counter for Rust projects"
 repository = "https://github.com/Maximkaaa/cargo-warloc"
 authors = ["Maxim Gritsenko <maxim@gritsenko.biz>"]
 documentation = "https://docs.rs/cargo-warloc"
-
+keywords = ["cargo", "loc"]
+categories = ["development-tools", "development-tools::cargo-plugins"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }

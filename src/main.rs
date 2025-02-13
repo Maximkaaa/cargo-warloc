@@ -5,13 +5,13 @@ mod warlocs;
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use cli::Cli;
+use cli::{CargoCli, Cli};
 use ignore::Walk;
 use visitor::Visitor;
 use warlocs::Warlocs;
 
 fn main() {
-    let args = Cli::parse();
+    let CargoCli::Command(args) = CargoCli::parse();
 
     let mut stats = Warlocs::default();
 
