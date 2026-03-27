@@ -84,7 +84,6 @@ dependencies = [
  "clap",
  "ignore",
  "utf8-chars",
- "walkdir",
 ]
 
 [[package]]

@@ -15,4 +15,3 @@ categories = ["development-tools", "development-tools::cargo-plugins"]
 clap = { version = "4.5", features = ["derive"] }
 ignore = "0.4.23"
 utf8-chars = "3.0.5"
-walkdir = "2.5.0"
