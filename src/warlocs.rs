@@ -1,14 +1,19 @@
-use std::ops::{Add, AddAssign};
+use serde::Serialize;
+use std::{
+    iter::Sum,
+    ops::{Add, AddAssign},
+};
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, Serialize)]
 pub struct Warlocs {
+    #[serde(skip_serializing_if = "is_single_file_stats")]
     pub file_count: u64,
     pub main: Locs,
     pub tests: Locs,
     pub examples: Locs,
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, Serialize)]
 pub struct Locs {
     pub whitespaces: u64,
     pub code: u64,
@@ -44,6 +49,12 @@ impl Locs {
     }
 }
 
+impl Sum for Warlocs {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Warlocs::default(), Warlocs::add)
+    }
+}
+
 impl Add<Warlocs> for Warlocs {
     type Output = Self;
 
@@ -74,4 +85,8 @@ impl Add<Locs> for Locs {
             comments: self.comments + rhs.comments,
         }
     }
+}
+
+fn is_single_file_stats(file_count: &u64) -> bool {
+    *file_count <= 1
 }

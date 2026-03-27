@@ -1,4 +1,6 @@
-use clap::Parser;
+use std::fmt::Display;
+
+use clap::{Parser, ValueEnum};
 
 /// Wise analysis of Rust lines of code
 ///
@@ -14,6 +16,31 @@ pub struct Cli {
     /// If set, will print out stats for each file separately
     #[arg(long)]
     pub by_file: bool,
+    /// Output format to print to standard output
+    #[arg(short, long, default_value_t = OutputFormat::Tabular)]
+    pub output_format: OutputFormat,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
+#[value(rename_all = "lower")]
+pub enum OutputFormat {
+    #[default]
+    Tabular,
+    Json,
+    Csv,
+    Yaml,
+}
+
+impl Display for OutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Tabular => "tabular",
+            Self::Yaml => "yaml",
+            Self::Csv => "csv",
+            Self::Json => "json",
+        };
+        f.write_str(s)
+    }
 }
 
 #[derive(Parser)]
