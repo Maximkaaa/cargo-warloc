@@ -1,8 +1,12 @@
 mod cli;
+mod output;
 mod visitor;
 mod warlocs;
 
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 use cli::{CargoCli, Cli};
@@ -10,82 +14,27 @@ use ignore::Walk;
 use visitor::Visitor;
 use warlocs::Warlocs;
 
+use crate::output::{output_multiple_file_stats, output_total_stats};
+
 fn main() {
     let CargoCli::Command(args) = CargoCli::parse();
 
-    let mut stats = Warlocs::default();
+    let root_dir = PathBuf::from(".");
 
-    for rust_file in enumerate_rust_files(".") {
-        let file_stats = calculate_file_stats(&rust_file, &args);
-        stats += file_stats;
+    let files_stats: HashMap<PathBuf, Warlocs> = enumerate_rust_files(&root_dir)
+        .map(|p| (p.clone(), calculate_file_stats(&p, &args)))
+        .collect();
+
+    if args.by_file {
+        output_multiple_file_stats(&args.output_format, files_stats);
+    } else {
+        let total_stats = files_stats.into_values().sum();
+        output_total_stats(&root_dir, &total_stats, &args.output_format);
     }
-
-    println!("File count: {}", stats.file_count);
-    pretty_print_stats(&stats);
 }
 
 fn calculate_file_stats(file_path: impl AsRef<Path>, args: &Cli) -> Warlocs {
-    let stats = Visitor::new(&file_path, args.debug).visit_file();
-
-    if args.by_file {
-        println!("File name: {}", file_path.as_ref().to_str().unwrap());
-        pretty_print_stats(&stats);
-        println!();
-    }
-
-    stats
-}
-
-fn pretty_print_stats(stats: &Warlocs) {
-    println!(
-        "{0: <12} | {1: <12} | {2: <12} | {3: <12} | {4: <12} | {5: <12}",
-        "Type", "Code", "Blank", "Doc comments", "Comments", "Total",
-    );
-    println!(
-        "{0:-<12}-|-{1:-<12}-|-{2:-<12}-|-{3:-<12}-|-{4:-<12}-|-{5:-<12}",
-        "", "", "", "", "", "",
-    );
-
-    println!(
-        "{0: <12} | {1: <12} | {2: <12} | {3: <12} | {4: <12} | {5: <12}",
-        "Main",
-        stats.main.code,
-        stats.main.whitespaces,
-        stats.main.docs,
-        stats.main.comments,
-        stats.main.sum(),
-    );
-    println!(
-        "{0: <12} | {1: <12} | {2: <12} | {3: <12} | {4: <12} | {5: <12}",
-        "Tests",
-        stats.tests.code,
-        stats.tests.whitespaces,
-        stats.tests.docs,
-        stats.tests.comments,
-        stats.tests.sum(),
-    );
-    println!(
-        "{0: <12} | {1: <12} | {2: <12} | {3: <12} | {4: <12} | {5: <12}",
-        "Examples",
-        stats.examples.code,
-        stats.examples.whitespaces,
-        stats.examples.docs,
-        stats.examples.comments,
-        stats.examples.sum(),
-    );
-    println!(
-        "{0:-<12}-|-{1:-<12}-|-{2:-<12}-|-{3:-<12}-|-{4:-<12}-|-{5:-<12}",
-        "", "", "", "", "", "",
-    );
-    println!(
-        "{0: <12} | {1: <12} | {2: <12} | {3: <12} | {4: <12} | {5: <12}",
-        "",
-        stats.code(),
-        stats.whitespaces(),
-        stats.docs(),
-        stats.comments(),
-        stats.sum(),
-    );
+    Visitor::new(&file_path, args.debug).visit_file()
 }
 
 fn enumerate_rust_files(root: impl AsRef<Path>) -> impl Iterator<Item = PathBuf> {
