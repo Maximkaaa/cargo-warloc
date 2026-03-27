@@ -2,13 +2,19 @@ mod cli;
 mod visitor;
 mod warlocs;
 
-use std::path::{Path, PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 use cli::{CargoCli, Cli};
+use csv::WriterBuilder;
 use ignore::Walk;
 use visitor::Visitor;
 use warlocs::Warlocs;
+
+use crate::cli::OutputFormat;
 
 fn main() {
     let CargoCli::Command(args) = CargoCli::parse();
@@ -21,7 +27,7 @@ fn main() {
     }
 
     println!("File count: {}", stats.file_count);
-    pretty_print_stats(&stats);
+    output_stats(&stats, &args.output_format);
 }
 
 fn calculate_file_stats(file_path: impl AsRef<Path>, args: &Cli) -> Warlocs {
@@ -34,6 +40,34 @@ fn calculate_file_stats(file_path: impl AsRef<Path>, args: &Cli) -> Warlocs {
     }
 
     stats
+}
+
+fn output_stats(stats: &Warlocs, output_format: &OutputFormat) {
+    match output_format {
+        OutputFormat::Tabular => pretty_print_stats(stats),
+        OutputFormat::Csv => {
+            let mut writer = WriterBuilder::new().from_writer(io::stdout());
+            for loc in [stats.main, stats.tests, stats.examples] {
+                writer
+                    .serialize(loc)
+                    .expect("CSV serialization should work")
+            }
+        }
+        OutputFormat::Json => {
+            print!(
+                "{}",
+                serde_json::to_string(&stats.serializable_totals())
+                    .expect("JSON serialization should work")
+            )
+        }
+        OutputFormat::Yaml => {
+            print!(
+                "{}",
+                serde_yaml::to_string(&stats.serializable_totals())
+                    .expect("JSON serialization should work")
+            )
+        }
+    }
 }
 
 fn pretty_print_stats(stats: &Warlocs) {

@@ -1,6 +1,7 @@
+use serde::Serialize;
 use std::ops::{Add, AddAssign};
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, Serialize)]
 pub struct Warlocs {
     pub file_count: u64,
     pub main: Locs,
@@ -8,12 +9,34 @@ pub struct Warlocs {
     pub examples: Locs,
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, Serialize)]
 pub struct Locs {
     pub whitespaces: u64,
     pub code: u64,
     pub docs: u64,
     pub comments: u64,
+}
+
+/// Simple Serde-friendly wrapper struct which provides complete picture of the data.
+#[derive(Debug, Serialize)]
+pub struct SerializableStats {
+    pub file_count: u64,
+    pub main: Locs,
+    pub tests: Locs,
+    pub examples: Locs,
+    pub totals: Locs,
+}
+
+impl From<&Warlocs> for SerializableStats {
+    fn from(w: &Warlocs) -> Self {
+        SerializableStats {
+            file_count: w.file_count,
+            main: w.main,
+            tests: w.tests,
+            examples: w.examples,
+            totals: w.main + w.tests + w.examples,
+        }
+    }
 }
 
 impl Warlocs {
@@ -35,6 +58,10 @@ impl Warlocs {
 
     pub fn sum(&self) -> u64 {
         self.whitespaces() + self.code() + self.docs() + self.comments()
+    }
+
+    pub fn serializable_totals(&self) -> SerializableStats {
+        SerializableStats::from(self)
     }
 }
 

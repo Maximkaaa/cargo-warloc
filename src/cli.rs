@@ -1,4 +1,6 @@
-use clap::Parser;
+use std::fmt::Display;
+
+use clap::{Parser, ValueEnum};
 
 /// Wise analysis of Rust lines of code
 ///
@@ -14,13 +16,38 @@ pub struct Cli {
     /// If set, will print out stats for each file separately
     #[arg(long)]
     pub by_file: bool,
+    /// Output format to print to standard output
+    #[arg(long, default_value_t = OutputFormat::Tabular)]
+    pub output_format: OutputFormat,
+}
+
+#[derive(Clone, Debug, Default, ValueEnum)]
+#[value(rename_all = "lower")]
+pub enum OutputFormat {
+    #[default]
+    Tabular,
+    Csv,
+    Json,
+    Yaml,
+}
+
+impl Display for OutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Tabular => "tabular",
+            Self::Yaml => "yaml",
+            Self::Json => "json",
+            Self::Csv => "csv",
+        };
+        f.write_str(s)
+    }
 }
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
-#[command(name="cargo", bin_name="cargo")]
+#[command(name = "cargo", bin_name = "cargo")]
 pub enum CargoCli {
-    #[command(name="warloc")]
+    #[command(name = "warloc")]
     Command(Cli),
 }
