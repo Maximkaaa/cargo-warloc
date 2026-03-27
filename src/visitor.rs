@@ -541,10 +541,10 @@ mod tests {
 
     #[test]
     fn multiline_comment_block() {
-        let file = r#"   /* 
+        let file = r#"   /*
 
-        comment 
-        */ 
+        comment
+        */
 "#;
 
         let stats = stats(file);
@@ -567,8 +567,8 @@ mod tests {
     fn multiline_doc_comment_block() {
         let file = r#"   /*!
 
-        comment 
-        */ 
+        comment
+        */
 "#;
 
         let stats = stats(file);

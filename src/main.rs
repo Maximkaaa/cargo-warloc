@@ -26,7 +26,6 @@ fn main() {
         stats += file_stats;
     }
 
-    println!("File count: {}", stats.file_count);
     output_stats(&stats, &args.output_format);
 }
 
@@ -64,13 +63,14 @@ fn output_stats(stats: &Warlocs, output_format: &OutputFormat) {
             print!(
                 "{}",
                 serde_yaml::to_string(&stats.serializable_totals())
-                    .expect("JSON serialization should work")
+                    .expect("YAML serialization should work")
             )
         }
     }
 }
 
 fn pretty_print_stats(stats: &Warlocs) {
+    println!("File count: {}", stats.file_count);
     println!(
         "{0: <12} | {1: <12} | {2: <12} | {3: <12} | {4: <12} | {5: <12}",
         "Type", "Code", "Blank", "Doc comments", "Comments", "Total",
