@@ -1,40 +1,45 @@
 //! Module implementing simple API for fetching LoC info using `git2-rs`
 
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, ops::Deref, path::Path};
+use std::{fmt::Debug, path::Path};
 
-use chrono::DateTime;
-use git2::{Blame, BlameHunk, BlameOptions, Error as GitError, Oid, Repository};
+use git2::{Blame, BlameOptions, Error as GitError, Repository};
+
+use crate::pathutil::diff_paths;
 
 /// Simple wrapper over a u64 holding milliseconds seconds since UNIX Epoch.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SecondsSinceEpoch(i128);
+pub struct SecondsSinceEpoch(pub i128);
 
 /// Git context containing a handle on the current git repository
 /// and offering a mid-level API for git blame operations.
 pub struct GitContext {
     /// Handle on the `git2::Repository`.
-    repo: Repository,
-
-    /// Simple commit timestamp cache to save on commit object lookups.
-    // FIXME: this has the potential of growing to huge sizes for huge repos.
-    commit_timestamp_cache: RefCell<HashMap<Oid, SecondsSinceEpoch>>,
+    pub repo: Repository,
 }
 
 impl GitContext {
     /// Loads the [GitContext] for the repository at or above the given path.
-    pub fn from_repo_root(path: impl AsRef<Path>) -> Result<Self, GitError> {
-        Ok(GitContext {
-            repo: Repository::discover(path)?,
-            commit_timestamp_cache: RefCell::new(HashMap::new()),
-        })
+    pub fn from_path_in_repo(path: impl AsRef<Path>) -> Result<Self, GitError> {
+        let repo = Repository::discover(&path)?;
+        Ok(GitContext { repo })
     }
 
     /// Loads the [GitBlameContext] for the file at the given path.
-    pub fn blame_file(
-        &mut self,
-        filepath: impl AsRef<Path>,
-    ) -> Result<GitBlameContext<'_>, GitError> {
-        GitBlameContext::from_filepath(self, filepath.as_ref())
+    pub fn blame_file(&self, filepath: impl AsRef<Path>) -> Result<GitBlameContext<'_>, GitError> {
+        let (_common, repo_extra, file_relative) = diff_paths(
+            self.repo
+                .path()
+                .parent()
+                .expect("Git repo should always have a parent dir"),
+            &filepath,
+        );
+
+        if repo_extra.parent().is_none() {
+            GitBlameContext::from_filepath(self, &file_relative)
+        } else {
+            // File is outside of git repo, let the error propagate:
+            GitBlameContext::from_filepath(self, filepath.as_ref())
+        }
     }
 }
 
@@ -50,9 +55,16 @@ impl<'a> GitBlameContext<'a> {
         git_context: &'a GitContext,
         filepath: &Path,
     ) -> Result<GitBlameContext<'a>, GitError> {
+        let mut blame_options = BlameOptions::new();
+        blame_options
+            .track_copies_same_commit_moves(true)
+            .track_copies_same_commit_copies(true)
+            .first_parent(true);
+
         let blame = git_context
             .repo
-            .blame_file(filepath, Some(&mut BlameOptions::default()))?;
+            .blame_file(filepath, Some(&mut blame_options))?;
+
         Ok(GitBlameContext { git_context, blame })
     }
 
@@ -66,18 +78,9 @@ impl<'a> GitBlameContext<'a> {
             Some(h) => h,
         };
 
-        let commit_id = hunk.final_commit_id();
-        let mut cache = self.git_context.commit_timestamp_cache.borrow_mut();
+        let final_commit = self.git_context.repo.find_commit(hunk.final_commit_id())?;
 
-        let timestamp = match cache.get(&commit_id) {
-            Some(ts) => ts.clone(),
-            None => {
-                let commit = self.git_context.repo.find_commit(hunk.final_commit_id())?;
-                let timestamp = SecondsSinceEpoch(i128::from(commit.time().seconds()));
-                cache.insert(commit_id, timestamp);
-                timestamp
-            }
-        };
+        let timestamp = SecondsSinceEpoch(i128::from(final_commit.time().seconds()));
 
         Ok(Some(timestamp))
     }

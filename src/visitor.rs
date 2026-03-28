@@ -1,5 +1,5 @@
 use std::{
-    fs::File,
+    fs::{canonicalize, File},
     io::{BufReader, Read},
     mem,
     path::Path,
@@ -7,12 +7,16 @@ use std::{
 
 use utf8_chars::BufReadCharsExt;
 
-use crate::warlocs::{Locs, Warlocs};
+use crate::{
+    git::{GitBlameContext, GitContext},
+    warlocs::{Locs, Warlocs},
+};
 
-pub struct Visitor<T: Read> {
+pub struct Visitor<'a, T: Read> {
     reader: BufReader<T>,
     context: VisitorContext,
     stats: Warlocs,
+    git_blame_context: Option<GitBlameContext<'a>>,
     lookahead: Option<char>,
     curr_string: String,
     curr_line_no: usize,
@@ -82,7 +86,7 @@ impl VisitorContext {
     }
 }
 
-impl Visitor<File> {
+impl<'a> Visitor<'a, File> {
     pub fn new(file_path: impl AsRef<Path>, debug: bool) -> Self {
         let file = File::open(&file_path).unwrap_or_else(|e| {
             panic!(
@@ -99,15 +103,35 @@ impl Visitor<File> {
             reader,
             context,
             stats: Warlocs::default(),
+            git_blame_context: None,
             lookahead,
             curr_string: String::new(),
             curr_line_no: 1,
             debug,
         }
     }
+
+    /// Creates a new [Visitor] which also tracks git blame timestamps.
+    pub fn new_with_git(
+        git_context: &'a mut GitContext,
+        file_path: impl AsRef<Path>,
+        debug: bool,
+    ) -> Self {
+        let mut v = Self::new(&file_path, debug);
+        let file_path = canonicalize(&file_path).expect("File should exist");
+
+        match git_context.blame_file(&file_path) {
+            Err(e) => eprintln!(
+                "WARN: failed to get Git blame data for {file_path:?}. Skipping git stats. {e:?}"
+            ),
+            Ok(b) => v.git_blame_context = Some(b),
+        }
+
+        v
+    }
 }
 
-impl<T: Read> Visitor<T> {
+impl<'a, T: Read> Visitor<'a, T> {
     pub fn visit_file(mut self) -> Warlocs {
         self.stats.file_count += 1;
 
@@ -306,7 +330,19 @@ impl<T: Read> Visitor<T> {
         let line = self.curr_line_no;
         self.curr_line_no += 1;
 
+        let timestamp = if let Some(blame_context) = &self.git_blame_context {
+            let timestamp = blame_context
+                .timestamp_for_line(line)
+                .expect("Should be able to get LoC git timestamp");
+            timestamp.map(|ts| ts.0)
+        } else {
+            None
+        };
+
         let stats = self.mut_stats(context);
+        if let Some(ts) = timestamp {
+            stats.time.account(ts);
+        };
 
         if line_context.has_code {
             stats.code += 1;
@@ -466,6 +502,7 @@ mod tests {
             reader,
             context: VisitorContext::Main,
             stats: Warlocs::default(),
+            git_blame_context: None,
             lookahead,
             curr_string: String::new(),
             curr_line_no: 1,

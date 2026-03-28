@@ -15,6 +15,16 @@ pub struct Locs {
     pub code: u64,
     pub docs: u64,
     pub comments: u64,
+    pub time: LocTimeStats,
+}
+
+/// Time stats for the lines of a code of agiven file.
+/// Values are in seconds since UNIX epoch.
+#[derive(Debug, Copy, Clone, Serialize)]
+pub struct LocTimeStats {
+    pub oldest: i128,
+    pub newest: i128,
+    pub average: i128,
 }
 
 /// Simple Serde-friendly wrapper struct which provides complete picture of the data.
@@ -71,6 +81,23 @@ impl Locs {
     }
 }
 
+impl LocTimeStats {
+    /// Accounts for the given seconds since UNIX Epoch timestamp.
+    pub fn account(&mut self, timestamp: i128) {
+        if self.oldest > timestamp {
+            self.oldest = timestamp;
+        }
+        if self.newest < timestamp {
+            self.newest = timestamp;
+        }
+        if self.average == 0 {
+            self.average = timestamp
+        } else {
+            self.average = (self.average + timestamp) / 2
+        }
+    }
+}
+
 impl Add<Warlocs> for Warlocs {
     type Output = Self;
 
@@ -99,6 +126,40 @@ impl Add<Locs> for Locs {
             code: self.code + rhs.code,
             docs: self.docs + rhs.docs,
             comments: self.comments + rhs.comments,
+            time: self.time + rhs.time,
         }
+    }
+}
+
+impl Default for LocTimeStats {
+    fn default() -> Self {
+        Self {
+            oldest: i128::MAX,
+            newest: i128::MIN,
+            average: 0i128,
+        }
+    }
+}
+
+impl Add for LocTimeStats {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            oldest: self.oldest.min(rhs.oldest),
+            newest: self.newest.max(rhs.newest),
+            average: match (self.average, rhs.average) {
+                (0, 0) => 0,
+                (0, nondefault) => nondefault,
+                (nondefault, 0) => nondefault,
+                (l, r) => (l + r) / 2,
+            },
+        }
+    }
+}
+
+impl AddAssign<LocTimeStats> for LocTimeStats {
+    fn add_assign(&mut self, rhs: LocTimeStats) {
+        *self = *self + rhs;
     }
 }

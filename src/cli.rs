@@ -16,9 +16,21 @@ pub struct Cli {
     /// If set, will print out stats for each file separately
     #[arg(long)]
     pub by_file: bool,
+
     /// Output format to print to standard output
     #[arg(long, default_value_t = OutputFormat::Tabular)]
     pub output_format: OutputFormat,
+
+    /// Optional directory to use as the root of the file search.
+    ///
+    /// Defaults to "", in which case the git repository root is
+    /// looked up and used as the root of the search, falling back
+    /// to "." in case of not being within a git repository.
+    ///
+    /// Use "." to force stat collection from the current directory
+    /// while still maintaining the Git LoC stats collection functionality.
+    #[arg(default_value_t = String::from(""))]
+    pub target_dir: String,
 }
 
 #[derive(Clone, Debug, Default, ValueEnum)]
