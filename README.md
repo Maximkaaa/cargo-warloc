@@ -12,17 +12,19 @@ about our project documentation being bigger than the code itself.
 * Understands (to a limit) Rust syntax, so is more accurate in its counts then most generic LOC counters.
 * Does not count ignored (by `.gitignore`) files.
 * Can optionally give you stats file-by-file.
+* Output stats in tables, CSV, JSON, or YAML.
 
-Here is the output for `cargo` repository:
+Here is the output for the `cargo` repository:
+
 ```
 File count: 1188
-Type         | Code         | Blank        | Doc comments | Comments     | Total       
+Type         | Code         | Blank        | Doc comments | Comments     | Total
 -------------|--------------|--------------|--------------|--------------|-------------
-Main         | 82530        | 9682         | 12625        | 6220         | 111057      
-Tests        | 144421       | 20538        | 588          | 10151        | 175698      
-Examples     | 169          | 27           | 5            | 19           | 220         
+Main         | 82530        | 9682         | 12625        | 6220         | 111057
+Tests        | 144421       | 20538        | 588          | 10151        | 175698
+Examples     | 169          | 27           | 5            | 19           | 220
 -------------|--------------|--------------|--------------|--------------|-------------
-             | 227120       | 30247        | 13218        | 16390        | 286975      
+             | 227120       | 30247        | 13218        | 16390        | 286975
 ```
 
 # Installation
@@ -34,7 +36,7 @@ cargo install cargo-warloc
 # Usage
 
 ```shell
-cargo warloc
+cargo warloc [--by-file] [-o tabular|csv|json|yaml]
 ```
 
 # Contributing

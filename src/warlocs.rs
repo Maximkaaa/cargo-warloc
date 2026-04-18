@@ -6,8 +6,6 @@ use std::{
 
 #[derive(Debug, Default, Copy, Clone, Serialize)]
 pub struct Warlocs {
-    #[serde(skip_serializing_if = "is_single_file_stats")]
-    pub file_count: u64,
     pub main: Locs,
     pub tests: Locs,
     pub examples: Locs,
@@ -60,7 +58,6 @@ impl Add<Warlocs> for Warlocs {
 
     fn add(self, rhs: Warlocs) -> Self::Output {
         Self {
-            file_count: self.file_count + rhs.file_count,
             main: self.main + rhs.main,
             tests: self.tests + rhs.tests,
             examples: self.examples + rhs.examples,
@@ -85,8 +82,4 @@ impl Add<Locs> for Locs {
             comments: self.comments + rhs.comments,
         }
     }
-}
-
-fn is_single_file_stats(file_count: &u64) -> bool {
-    *file_count <= 1
 }

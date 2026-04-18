@@ -109,8 +109,6 @@ impl Visitor<File> {
 
 impl<T: Read> Visitor<T> {
     pub fn visit_file(mut self) -> Warlocs {
-        self.stats.file_count += 1;
-
         self.visit_code(self.context);
 
         self.stats
@@ -479,7 +477,6 @@ mod tests {
         let file = "\n";
         let stats = stats(file);
 
-        assert_eq!(stats.file_count, 1);
         assert_eq!(stats.main.whitespaces, 1);
         assert_eq!(stats.main.sum(), 1);
     }
@@ -489,7 +486,6 @@ mod tests {
         let file = "  \t\t \n";
         let stats = stats(file);
 
-        assert_eq!(stats.file_count, 1);
         assert_eq!(stats.main.whitespaces, 1);
         assert_eq!(stats.main.sum(), 1);
     }
