@@ -4,7 +4,7 @@ mod visitor;
 mod warlocs;
 
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     path::{Path, PathBuf},
 };
 
@@ -21,15 +21,16 @@ fn main() {
 
     let root_dir = PathBuf::from(".");
 
-    let files_stats: HashMap<PathBuf, Warlocs> = enumerate_rust_files(&root_dir)
+    let files_stats: BTreeMap<PathBuf, Warlocs> = enumerate_rust_files(&root_dir)
         .map(|p| (p.clone(), calculate_file_stats(&p, &args)))
         .collect();
 
     if args.by_file {
         output_multiple_file_stats(&args.output_format, files_stats);
     } else {
+        let file_count = files_stats.len();
         let total_stats = files_stats.into_values().sum();
-        output_total_stats(&root_dir, &total_stats, &args.output_format);
+        output_total_stats(file_count as u64, &total_stats, &args.output_format);
     }
 }
 
