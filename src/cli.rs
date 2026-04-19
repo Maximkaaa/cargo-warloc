@@ -19,8 +19,8 @@ pub struct Cli {
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
-#[command(name="cargo", bin_name="cargo")]
+#[command(name = "cargo", bin_name = "cargo")]
 pub enum CargoCli {
-    #[command(name="warloc")]
+    #[command(name = "warloc")]
     Command(Cli),
 }
