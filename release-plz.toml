@@ -1,0 +1,6 @@
+[workspace]
+# cargo-warloc is a binary crate, so semver checks are not applicable.
+semver_check = false
+
+# Release only when the release PR is merged, not on every commit.
+release_always = false
