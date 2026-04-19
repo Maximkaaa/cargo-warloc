@@ -35,7 +35,7 @@ pub fn output_multiple_file_stats(output_format: &OutputFormat, stats: BTreeMap<
             let multistats = SerializableMultiFileStats::from_file_stats(stats);
             let mut buff: Vec<u8> = Vec::new();
             csv_output::output_csv(&multistats.totals, &multistats.files, &mut buff);
-            println!(
+            print!(
                 "{}",
                 str::from_utf8(&buff).expect("CSV output should be UTF-8")
             )
@@ -76,7 +76,7 @@ pub fn output_total_stats(file_count: u64, stats: &Warlocs, output_format: &Outp
                 .expect("Write CSV row field");
             csv_output::write_single_csv_value(stats, &mut writer);
             drop(writer);
-            println!(
+            print!(
                 "{}",
                 str::from_utf8(&buff).expect("CSV output should be UTF-8")
             )
